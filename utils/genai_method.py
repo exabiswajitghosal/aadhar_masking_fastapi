@@ -45,7 +45,7 @@ def extract_aadhaar_with_gpt4(image_path):
                 "content": [
                     {
                         "type": "text",
-                        "text": "Please extract the 12-digit Aadhaar number from this image. Return ONLY the number with spaces as it appears in the image. nothing else."
+                        "text": "Please extract the 12-digit number from this image. Return ONLY the number with spaces as it appears in the image. nothing else."
                     },
                     {
                         "type": "image_url",
@@ -86,79 +86,39 @@ def extract_aadhaar_with_gpt4(image_path):
         return None
 
 
-def find_aadhaar_coordinates(image_path, aadhaar_number):
-    """
-    Use OpenCV and Tesseract to locate the Aadhaar number in the image.
-    """
-    try:
-        print("I am here ", aadhaar_number)
-        image = cv2.imread(image_path)
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        blurred_image = cv2.medianBlur(gray_image, 3)
-        threshold_image = cv2.adaptiveThreshold(blurred_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,
-                                                11, 2)
-
-        # Perform OCR
-        data = pytesseract.image_to_data(threshold_image, output_type=pytesseract.Output.DICT)
-        print(f"OCR data: {data}")  # Debugging output
-
-        # Normalize text data
-        normalized_text = "".join([text for text in data['text'] if text.isdigit()])
-        aadhaar_normalized = aadhaar_number.replace(" ", "")
-
-        print(f"Normalized text: {normalized_text}")
-        print(f"Normalized Aadhaar number: {aadhaar_normalized}")
-
-        # Check if Aadhaar number exists in normalized text
-        if aadhaar_normalized in normalized_text:
-            for i, text in enumerate(data['text']):
-                # Normalize individual text fragments
-                fragment = text.replace(" ", "").replace("'", "").replace("-", "")
-                if aadhaar_normalized in fragment:
-                    x, y, w, h = data['left'][i], data['top'][i], data['width'][i], data['height'][i]
-                    print(f"Found Aadhaar number at coordinates: x={x}, y={y}, w={w}, h={h}")
-                    return x, y, w, h
-
-        print("Aadhaar number not found with OpenCV.")
-        return None
-    except Exception as e:
-        print(f"Error finding Aadhaar number coordinates: {str(e)}")
-        return None
-
 
 def mask_aadhaar_number(image_path, aadhaar_number, output_path):
-    """
-    Mask the Aadhaar number in the image using OpenCV coordinates.
-    """
-    try:
-        image = Image.open(image_path)
-        draw = ImageDraw.Draw(image)
+    aadhaar_number_digits = aadhaar_number.split(" ")[0:2]
 
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
+    image = Image.open(image_path)
 
-        coordinates = find_aadhaar_coordinates(image_path, aadhaar_number)
-        if coordinates is None:
-            print("Failed to find Aadhaar number coordinates. Masking aborted.")
-            return False
+    # Extract data from the image using pytesseract
+    data = pytesseract.image_to_data(image, lang='eng+hin', output_type=pytesseract.Output.DICT)
 
-        x, y, w, h = coordinates
+    # Locate the Aadhaar number's bounding box
+    aadhaar_coordinates = None
 
-        if x is not None:
-            # Draw a black rectangle over the Aadhaar number
-            draw.rectangle([(x, y), (x + w, y + h)], fill="black")
+    image_with_mask = image.copy()
 
-            # Save the masked image
-            image.save(output_path)
-            print(f"Successfully saved masked image to: {output_path}")
-            return True
-        else:
-            print("Failed to find Aadhaar number coordinates. Masking aborted.")
-            return False
+    for i, text in enumerate(data['text']):
+        print(i, text)
+        for digit in range(len(aadhaar_number_digits) * 2):
+            if text.strip() in aadhaar_number_digits:
+                # Get bounding box coordinates
+                x, y, w, h = data['left'][i], data['top'][i], data['width'][i], data['height'][i]
+                aadhaar_coordinates = (x, y, x + w, y + h)
+                draw = ImageDraw.Draw(image_with_mask)
+                draw.rectangle(aadhaar_coordinates, fill="black")
+            break
 
-    except Exception as e:
-        print(f"Error masking Aadhaar number: {str(e)}")
-        return False
+    # If Aadhaar number is found, mask it
+    if aadhaar_coordinates:
+        image_with_mask.save(output_path)
+
+        print(f"Aadhaar number masked successfully! Saved to {output_path}")
+        return True
+    else:
+        print("Aadhaar number not found in the image.")
 
 
 def main():
@@ -167,8 +127,8 @@ def main():
         print("Error: OPENAI_API_KEY not found in .env file")
         return
 
-    input_image_path = "../sample/E01.jpg"
-    output_image = "downloads/masked_aadhar.jpg"
+    input_image_path = "../sample/DA01.jpg"
+    output_image_path = "../downloads/DA01_masked_aadhar.jpg"
 
     if not os.path.exists(input_image_path):
         print(f"Error: Input image not found at path: {input_image_path}")
@@ -182,7 +142,7 @@ def main():
         print(f"Found Aadhaar number: ********{cleaned_number[-4:]}")
 
         print("Starting masking process...")
-        if mask_aadhaar_number(input_image_path, aadhaar_number, output_image):
+        if mask_aadhaar_number(input_image_path, aadhaar_number, output_image_path):
             print("Successfully masked Aadhaar number!")
         else:
             print("Failed to mask Aadhaar number.")
