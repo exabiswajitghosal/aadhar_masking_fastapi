@@ -3,6 +3,7 @@ from PIL import Image, ImageDraw
 import cv2
 import re
 import os
+import glob
 
 # Aadhaar number pattern (4 digits, space, 4 digits, space, 4 digits)
 AADHAAR_REGEX = re.compile(r"\b\d{4}\s\d{4}\s\d{4}\b")
@@ -50,7 +51,8 @@ def extract_text_and_bboxes(image_path):
 def mask_aadhaar(image_path, output_path=None):
     """Mask Aadhaar numbers in an image with black rectangles."""
     if not output_path:
-        output_path = f"../temp/masked_{os.path.basename(image_path)}"
+        os.makedirs("../temp/sol_2", exist_ok=True)
+        output_path = f"../temp/sol_2/masked_{os.path.basename(image_path)}"
 
     texts, bboxes = extract_text_and_bboxes(image_path)
     if not texts:
@@ -65,13 +67,30 @@ def mask_aadhaar(image_path, output_path=None):
     return output_path
 
 
+def process_images_in_folder(folder_path):
+    image_extensions = ["*.jpg", "*.jpeg", "*.png"]  # Add other extensions if needed
+    image_paths = []
+
+    # Get all image files in the folder
+    for ext in image_extensions:
+        image_paths.extend(glob.glob(os.path.join(folder_path, ext)))
+
+    if not image_paths:
+        print("No images found in the folder.")
+        return
+
+    for image_path in image_paths:
+        try:
+            output_path = mask_aadhaar(image_path)
+            if output_path:
+                print(f"Masked image saved as: {output_path}")
+            else:
+                print(f"No Aadhaar numbers found in the image: {image_path}")
+        except Exception as e:
+            print(f"Error processing {image_path}: {e}")
+
+
 if __name__ == "__main__":
-    image_path = "../sample/E01.jpg"
-    try:
-        output_path = mask_aadhaar(image_path)
-        if output_path:
-            print(f"Masked image saved as: {output_path}")
-        else:
-            print("No Aadhaar numbers found in the image.")
-    except Exception as e:
-        print(f"Error processing image: {e}")
+    folder_path = "../sample/"
+    process_images_in_folder(folder_path)
+

@@ -9,7 +9,8 @@ import shutil
 from datetime import datetime
 
 # Local Modules
-from utils.traditional_methods import process_aadhar_image
+from utils.solution1 import process_aadhar_image
+from utils.solution2 import mask_aadhaar
 
 # Setup directories
 TEMP_DIR = "temp"
@@ -42,7 +43,6 @@ app = FastAPI(
 )
 
 
-
 @app.post("/mask-aadhar/", 
           summary="Mask Aadhaar card",
           description="Upload an Aadhaar card image to mask sensitive information")
@@ -56,10 +56,7 @@ async def mask_aadhar_card(file: UploadFile = File(...)):
         
         # Process image
         masked_image = await process_aadhar_image(image_data)
-        
-        # Generate output filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_filename = f"masked_aadhar_{timestamp}.jpg"
+        output_filename = f"masked_aadhar_{file.filename}"
         output_path = os.path.join(OUTPUT_DIR, output_filename)
         
         # Save masked image
@@ -93,7 +90,7 @@ async def mask_multiple_aadhar_cards(files: List[UploadFile] = File(...)):
             image_data = await file.read()
             masked_image = await process_aadhar_image(image_data)
             
-            output_filename = f"masked_aadhar_{timestamp}_{idx}.jpg"
+            output_filename = f"masked_aadhar_{file.filename}"
             output_path = os.path.join(OUTPUT_DIR, output_filename)
             
             cv2.imwrite(output_path, masked_image)
@@ -128,6 +125,97 @@ async def mask_multiple_aadhar_cards(files: List[UploadFile] = File(...)):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/mask-aadhar-layoutlm/",
+          summary="Mask Aadhaar card using LayoutLM",
+          description="Upload an Aadhaar card image to mask sensitive information using LayoutLM")
+async def mask_aadhar_layoutlm(file: UploadFile = File(...)):
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    try:
+        # Read image file
+        image_data = await file.read()
+
+        # Process image
+        image_path = os.path.join(TEMP_DIR, file.filename)
+        output_path = os.path.join(OUTPUT_DIR, f"masked_{file.filename}")
+        with open(image_path, "wb") as f:
+            f.write(image_data)
+
+        masked_image_path = mask_aadhaar(image_path=image_path, output_path=output_path)
+
+        if not masked_image_path:
+            raise HTTPException(status_code=400, detail="No Aadhaar numbers found in the image")
+
+        # Return masked image
+        return FileResponse(
+            masked_image_path,
+            media_type="image/jpeg",
+            filename=os.path.basename(masked_image_path)
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/mask-multiple-aadhars-layoutlm/",
+          summary="Mask multiple Aadhaar cards using LayoutLM",
+          description="Upload multiple Aadhaar card images to mask sensitive information using LayoutLM")
+async def mask_multiple_aadhar_cards_layoutlm(files: List[UploadFile] = File(...)):
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+
+    try:
+        masked_images = []
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        for idx, file in enumerate(files):
+            if not file.content_type.startswith('image/'):
+                continue
+
+            image_data = await file.read()
+            image_path = os.path.join(TEMP_DIR, file.filename)
+            output_path = os.path.join(OUTPUT_DIR, f"masked_{file.filename}")
+
+            with open(image_path, "wb") as f:
+                f.write(image_data)
+
+            masked_image_path = mask_aadhaar(image_path=image_path, output_path=output_path)
+
+            if masked_image_path:
+                masked_images.append(masked_image_path)
+
+        if not masked_images:
+            raise HTTPException(status_code=400, detail="No valid images processed")
+
+        # Create ZIP file containing all masked images
+        zip_filename = f"masked_aadhars_{timestamp}.zip"
+        zip_path = os.path.join(OUTPUT_DIR, zip_filename)
+
+        # Create a temporary directory for ZIP creation
+        temp_zip_dir = os.path.join(TEMP_DIR, f"zip_{timestamp}")
+        os.makedirs(temp_zip_dir, exist_ok=True)
+
+        # Copy masked images to temporary directory
+        for img_path in masked_images:
+            shutil.copy2(img_path, temp_zip_dir)
+
+        # Create ZIP file
+        shutil.make_archive(zip_path[:-4], 'zip', temp_zip_dir)
+
+        # Cleanup temporary directory
+        shutil.rmtree(temp_zip_dir)
+
+        return FileResponse(
+            zip_path,
+            media_type="application/zip",
+            filename=zip_filename
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

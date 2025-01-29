@@ -4,6 +4,8 @@ import pytesseract
 import re
 import easyocr
 import cv2
+import os
+import asyncio
 
 
 async def process_aadhar_image(image_data: bytes):
@@ -59,4 +61,34 @@ async def process_aadhar_image(image_data: bytes):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
+async def process_folder(input_folder: str, output_folder: str):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    image_extensions = {".png", ".jpg", ".jpeg"}
+    image_files = [f for f in os.listdir(input_folder) if os.path.splitext(f)[1].lower() in image_extensions]
+
+    if not image_files:
+        print("No valid image files found in the folder.")
+        return
+
+    tasks = []
+    for image_file in image_files:
+        image_path = os.path.join(input_folder, image_file)
+        output_path = os.path.join(output_folder, image_file)
+
+        with open(image_path, "rb") as f:
+            image_data = f.read()
+
+        processed_image = await process_aadhar_image(image_data)
+        cv2.imwrite(output_path, processed_image)
+        print(f"Processed and saved: {output_path}")
+
+    print("Processing completed for all Aadhaar cards.")
+
+# Call this function
+input_folder_path = "../sample"
+output_folder_path = "../temp/sol_1"
+os.makedirs(output_folder_path, exist_ok=True)
+asyncio.run(process_folder(input_folder_path, output_folder_path))
 
