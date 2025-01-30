@@ -127,10 +127,10 @@ async def mask_multiple_aadhar_cards(files: List[UploadFile] = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/mask-aadhar-layoutlm/",
-          summary="Mask Aadhaar card using LayoutLM",
-          description="Upload an Aadhaar card image to mask sensitive information using LayoutLM")
-async def mask_aadhar_layoutlm(file: UploadFile = File(...)):
+@app.post("/mask-aadhar-solution2/",
+          summary="Mask Aadhaar card using Solution 2",
+          description="Upload an Aadhaar card image to mask sensitive information using Solution 2")
+async def mask_aadhar_solution2(file: UploadFile = File(...)):
     if not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="File must be an image")
 
@@ -159,10 +159,10 @@ async def mask_aadhar_layoutlm(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/mask-multiple-aadhars-layoutlm/",
-          summary="Mask multiple Aadhaar cards using LayoutLM",
-          description="Upload multiple Aadhaar card images to mask sensitive information using LayoutLM")
-async def mask_multiple_aadhar_cards_layoutlm(files: List[UploadFile] = File(...)):
+@app.post("/mask-multiple-aadhars-solution2/",
+          summary="Mask multiple Aadhaar cards using Solution 2",
+          description="Upload multiple Aadhaar card images to mask sensitive information using Solution 2")
+async def mask_multiple_aadhar_cards_solution2(files: List[UploadFile] = File(...)):
     if not files:
         raise HTTPException(status_code=400, detail="No files provided")
 
