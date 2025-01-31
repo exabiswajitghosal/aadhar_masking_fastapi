@@ -87,8 +87,8 @@ async def process_folder(input_folder: str, output_folder: str):
     print("Processing completed for all Aadhaar cards.")
 
 # Call this function
-input_folder_path = "../sample"
-output_folder_path = "../temp/sol_1"
-os.makedirs(output_folder_path, exist_ok=True)
-asyncio.run(process_folder(input_folder_path, output_folder_path))
+# input_folder_path = "../sample"
+# output_folder_path = "../temp/sol_1"
+# os.makedirs(output_folder_path, exist_ok=True)
+# asyncio.run(process_folder(input_folder_path, output_folder_path))
 

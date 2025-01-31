@@ -2,7 +2,6 @@ import os
 import base64
 import requests
 from PIL import Image, ImageDraw
-import cv2
 from dotenv import load_dotenv
 import pytesseract
 
@@ -101,7 +100,6 @@ def mask_aadhaar_number(image_path, aadhaar_number, output_path):
     image_with_mask = image.copy()
 
     for i, text in enumerate(data['text']):
-        print(i, text)
         for digit in range(len(aadhaar_number_digits) * 2):
             if text.strip() in aadhaar_number_digits:
                 # Get bounding box coordinates
@@ -119,36 +117,4 @@ def mask_aadhaar_number(image_path, aadhaar_number, output_path):
         return True
     else:
         print("Aadhaar number not found in the image.")
-
-
-def main():
-
-    if not api_key:
-        print("Error: OPENAI_API_KEY not found in .env file")
-        return
-
-    input_image_path = "../sample/DA01.jpg"
-    output_image_path = "../downloads/DA01_masked_aadhar.jpg"
-
-    if not os.path.exists(input_image_path):
-        print(f"Error: Input image not found at path: {input_image_path}")
-        return
-
-    print("Starting Aadhaar number extraction...")
-    aadhaar_number = extract_aadhaar_with_gpt4(input_image_path)
-
-    if aadhaar_number:
-        cleaned_number = aadhaar_number.replace(" ", "")
-        print(f"Found Aadhaar number: ********{cleaned_number[-4:]}")
-
-        print("Starting masking process...")
-        if mask_aadhaar_number(input_image_path, aadhaar_number, output_image_path):
-            print("Successfully masked Aadhaar number!")
-        else:
-            print("Failed to mask Aadhaar number.")
-    else:
-        print("Failed to extract Aadhaar number.")
-
-
-if __name__ == "__main__":
-    main()
+        return False

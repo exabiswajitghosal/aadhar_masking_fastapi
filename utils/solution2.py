@@ -37,6 +37,7 @@ def extract_text_and_bboxes(image_path):
         else:
             combined_text = " ".join(current_tokens)
             if AADHAAR_REGEX.fullmatch(combined_text):
+                print(f"Found Aadhaar number: {combined_text}")
                 texts.append(combined_text)
                 x1 = min(bbox[0] for bbox in current_bboxes[:2])  # First 8 digits
                 y1 = min(bbox[1] for bbox in current_bboxes[:2])
@@ -90,7 +91,7 @@ def process_images_in_folder(folder_path):
             print(f"Error processing {image_path}: {e}")
 
 
-if __name__ == "__main__":
-    folder_path = "../sample/"
-    process_images_in_folder(folder_path)
+# if __name__ == "__main__":
+#     folder_path = "../sample/"
+#     process_images_in_folder(folder_path)
 

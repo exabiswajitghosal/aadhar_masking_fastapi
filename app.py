@@ -11,6 +11,7 @@ from datetime import datetime
 # Local Modules
 from utils.solution1 import process_aadhar_image
 from utils.solution2 import mask_aadhaar
+from utils.genai_method import extract_aadhaar_with_gpt4, mask_aadhaar_number
 
 # Setup directories
 TEMP_DIR = "temp"
@@ -43,9 +44,9 @@ app = FastAPI(
 )
 
 
-@app.post("/mask-aadhar/", 
-          summary="Mask Aadhaar card",
-          description="Upload an Aadhaar card image to mask sensitive information")
+@app.post("/mask-aadhar/solution1/",
+          summary="Mask Aadhaar card using Solution 1",
+          description="Upload an Aadhaar card image to mask sensitive information using Solution 1")
 async def mask_aadhar_card(file: UploadFile = File(...)):
     if not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="File must be an image")
@@ -72,62 +73,62 @@ async def mask_aadhar_card(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/mask-multiple-aadhars/",
-          summary="Mask multiple Aadhaar cards",
-          description="Upload multiple Aadhaar card images to mask sensitive information")
-async def mask_multiple_aadhar_cards(files: List[UploadFile] = File(...)):
-    if not files:
-        raise HTTPException(status_code=400, detail="No files provided")
+# @app.post("/mask-multiple-aadhars/solution1/",
+#           summary="Mask multiple Aadhaar cards using Solution 1",
+#           description="Upload multiple Aadhaar card images to mask sensitive information using Solution 1")
+# async def mask_multiple_aadhar_cards(files: List[UploadFile] = File(...)):
+#     if not files:
+#         raise HTTPException(status_code=400, detail="No files provided")
+#
+#     try:
+#         masked_images = []
+#         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#
+#         for idx, file in enumerate(files):
+#             if not file.content_type.startswith('image/'):
+#                 continue
+#
+#             image_data = await file.read()
+#             masked_image = await process_aadhar_image(image_data)
+#
+#             output_filename = f"masked_aadhar_{file.filename}"
+#             output_path = os.path.join(OUTPUT_DIR, output_filename)
+#
+#             cv2.imwrite(output_path, masked_image)
+#             masked_images.append(output_path)
+#
+#         if not masked_images:
+#             raise HTTPException(status_code=400, detail="No valid images processed")
+#
+#         # Create ZIP file containing all masked images
+#         zip_filename = f"masked_aadhars_{timestamp}.zip"
+#         zip_path = os.path.join(OUTPUT_DIR, zip_filename)
+#
+#         # Create a temporary directory for ZIP creation
+#         temp_zip_dir = os.path.join(TEMP_DIR, f"zip_{timestamp}")
+#         os.makedirs(temp_zip_dir, exist_ok=True)
+#
+#         # Copy masked images to temporary directory
+#         for img_path in masked_images:
+#             shutil.copy2(img_path, temp_zip_dir)
+#
+#         # Create ZIP file
+#         shutil.make_archive(zip_path[:-4], 'zip', temp_zip_dir)
+#
+#         # Cleanup temporary directory
+#         shutil.rmtree(temp_zip_dir)
+#
+#         return FileResponse(
+#             zip_path,
+#             media_type="application/zip",
+#             filename=zip_filename
+#         )
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
-    try:
-        masked_images = []
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        for idx, file in enumerate(files):
-            if not file.content_type.startswith('image/'):
-                continue
-                
-            image_data = await file.read()
-            masked_image = await process_aadhar_image(image_data)
-            
-            output_filename = f"masked_aadhar_{file.filename}"
-            output_path = os.path.join(OUTPUT_DIR, output_filename)
-            
-            cv2.imwrite(output_path, masked_image)
-            masked_images.append(output_path)
-        
-        if not masked_images:
-            raise HTTPException(status_code=400, detail="No valid images processed")
-            
-        # Create ZIP file containing all masked images
-        zip_filename = f"masked_aadhars_{timestamp}.zip"
-        zip_path = os.path.join(OUTPUT_DIR, zip_filename)
-        
-        # Create a temporary directory for ZIP creation
-        temp_zip_dir = os.path.join(TEMP_DIR, f"zip_{timestamp}")
-        os.makedirs(temp_zip_dir, exist_ok=True)
-        
-        # Copy masked images to temporary directory
-        for img_path in masked_images:
-            shutil.copy2(img_path, temp_zip_dir)
-        
-        # Create ZIP file
-        shutil.make_archive(zip_path[:-4], 'zip', temp_zip_dir)
-        
-        # Cleanup temporary directory
-        shutil.rmtree(temp_zip_dir)
-        
-        return FileResponse(
-            zip_path,
-            media_type="application/zip",
-            filename=zip_filename
-        )
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/mask-aadhar-solution2/",
+@app.post("/mask-aadhar/solution2/",
           summary="Mask Aadhaar card using Solution 2",
           description="Upload an Aadhaar card image to mask sensitive information using Solution 2")
 async def mask_aadhar_solution2(file: UploadFile = File(...)):
@@ -159,63 +160,98 @@ async def mask_aadhar_solution2(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/mask-multiple-aadhars-solution2/",
-          summary="Mask multiple Aadhaar cards using Solution 2",
-          description="Upload multiple Aadhaar card images to mask sensitive information using Solution 2")
-async def mask_multiple_aadhar_cards_solution2(files: List[UploadFile] = File(...)):
-    if not files:
-        raise HTTPException(status_code=400, detail="No files provided")
+# @app.post("/mask-multiple-aadhars/solution2/",
+#           summary="Mask multiple Aadhaar cards using Solution 2",
+#           description="Upload multiple Aadhaar card images to mask sensitive information using Solution 2")
+# async def mask_multiple_aadhar_cards_solution2(files: List[UploadFile] = File(...)):
+#     if not files:
+#         raise HTTPException(status_code=400, detail="No files provided")
+#
+#     try:
+#         masked_images = []
+#         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#
+#         for idx, file in enumerate(files):
+#             if not file.content_type.startswith('image/'):
+#                 continue
+#
+#             image_data = await file.read()
+#             image_path = os.path.join(TEMP_DIR, file.filename)
+#             output_path = os.path.join(OUTPUT_DIR, f"masked_{file.filename}")
+#
+#             with open(image_path, "wb") as f:
+#                 f.write(image_data)
+#
+#             masked_image_path = mask_aadhaar(image_path=image_path, output_path=output_path)
+#
+#             if masked_image_path:
+#                 masked_images.append(masked_image_path)
+#
+#         if not masked_images:
+#             raise HTTPException(status_code=400, detail="No valid images processed")
+#
+#         # Create ZIP file containing all masked images
+#         zip_filename = f"masked_aadhars_{timestamp}.zip"
+#         zip_path = os.path.join(OUTPUT_DIR, zip_filename)
+#
+#         # Create a temporary directory for ZIP creation
+#         temp_zip_dir = os.path.join(TEMP_DIR, f"zip_{timestamp}")
+#         os.makedirs(temp_zip_dir, exist_ok=True)
+#
+#         # Copy masked images to temporary directory
+#         for img_path in masked_images:
+#             shutil.copy2(img_path, temp_zip_dir)
+#
+#         # Create ZIP file
+#         shutil.make_archive(zip_path[:-4], 'zip', temp_zip_dir)
+#
+#         # Cleanup temporary directory
+#         shutil.rmtree(temp_zip_dir)
+#
+#         return FileResponse(
+#             zip_path,
+#             media_type="application/zip",
+#             filename=zip_filename
+#         )
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/mask-aadhar/genai/",
+          summary="Mask Aadhaar card using GenAI method",
+          description="Upload an Aadhaar card image to mask sensitive information using GenAI method")
+async def mask_aadhar_genai(file: UploadFile = File(...)):
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
 
     try:
-        masked_images = []
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Read image file
+        image_data = await file.read()
 
-        for idx, file in enumerate(files):
-            if not file.content_type.startswith('image/'):
-                continue
+        # Process image
+        image_path = os.path.join(TEMP_DIR, file.filename)
+        output_path = os.path.join(OUTPUT_DIR, f"masked_{file.filename}")
+        with open(image_path, "wb") as f:
+            f.write(image_data)
 
-            image_data = await file.read()
-            image_path = os.path.join(TEMP_DIR, file.filename)
-            output_path = os.path.join(OUTPUT_DIR, f"masked_{file.filename}")
+        # Extract Aadhaar number
+        aadhaar_number = extract_aadhaar_with_gpt4(image_path)
+        if not aadhaar_number:
+            raise HTTPException(status_code=400, detail="No Aadhaar number found in the image")
 
-            with open(image_path, "wb") as f:
-                f.write(image_data)
+        # Mask Aadhaar number
+        mask_aadhaar_number(image_path, aadhaar_number, output_path)
 
-            masked_image_path = mask_aadhaar(image_path=image_path, output_path=output_path)
-
-            if masked_image_path:
-                masked_images.append(masked_image_path)
-
-        if not masked_images:
-            raise HTTPException(status_code=400, detail="No valid images processed")
-
-        # Create ZIP file containing all masked images
-        zip_filename = f"masked_aadhars_{timestamp}.zip"
-        zip_path = os.path.join(OUTPUT_DIR, zip_filename)
-
-        # Create a temporary directory for ZIP creation
-        temp_zip_dir = os.path.join(TEMP_DIR, f"zip_{timestamp}")
-        os.makedirs(temp_zip_dir, exist_ok=True)
-
-        # Copy masked images to temporary directory
-        for img_path in masked_images:
-            shutil.copy2(img_path, temp_zip_dir)
-
-        # Create ZIP file
-        shutil.make_archive(zip_path[:-4], 'zip', temp_zip_dir)
-
-        # Cleanup temporary directory
-        shutil.rmtree(temp_zip_dir)
-
+        # Return masked image
         return FileResponse(
-            zip_path,
-            media_type="application/zip",
-            filename=zip_filename
+            output_path,
+            media_type="image/jpeg",
+            filename=os.path.basename(output_path)
         )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
